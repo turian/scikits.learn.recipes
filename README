@@ -1,0 +1,9 @@
+pysvm
+=====
+
+Python SVM implementation using scikits.learn.
+
+Requirements
+    * numpy
+    * scikits.learn
+    * My Python common library.
