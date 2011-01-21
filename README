@@ -1,7 +1,8 @@
-pysvm
+scikits.learn.recipes
 =====
 
-Python SVM implementation using scikits.learn.
+Logistic Regression, automatically picking the best hyperparams using leave-one-out crossvalidation.
+Built using scikits.learn.
 
 Requirements
     * numpy
