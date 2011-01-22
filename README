@@ -4,6 +4,10 @@ scikits.learn.recipes
 Logistic Regression, automatically picking the best hyperparams using leave-one-out crossvalidation.
 Built using scikits.learn.
 
+TODO:
+    * Create a Class that converts all inputs from dict to a csrmatrix,
+    to ensure that you always use the same feature map.
+
 Requirements
     * numpy
     * scikits.learn

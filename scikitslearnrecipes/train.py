@@ -2,8 +2,6 @@
 pysvm module for training an SVM in Python.
 """
 
-from common.sparsedicttocsrmatrix import SparseDictToCSRMatrix
-
 import numpy
 import math
 import random
@@ -13,18 +11,19 @@ from scikits.learn import svm
 import common.str
 from common.stats import stats
 
-def train(examples, Y):
+def train(X, Y):
     """
+    Pick hyperparams through a random grid-search, and return the best classifier.
     examples is a list of dict of {"feature name": value}.
+    X should have been converted to a csrmatrix, maybe using SparseDictToCSRMatrix().
     Y is a list of target values.
-    Pick hyperparams through a random grid-search.
 
     TODO: Don't assume a sparse matrix?
+    TODO: Make list of hyperparams more generic, not hard-coded
     """
-    csrmatrix = SparseDictToCSRMatrix()
-    X = csrmatrix.train(examples)
     Y = numpy.array(Y)
     assert X.shape[0] == len(Y)
+    assert Y.ndim == 1
 
     ALL_ALPHA = [0.32 ** i for i in range(-2, 14)]
 #    print ALL_ALPHA
@@ -58,11 +57,12 @@ def train(examples, Y):
     if not((bestn_iter != ALL_N_ITER[0] or ALL_N_ITER[0]==1) and bestn_iter != ALL_N_ITER[-1]):
         print >> sys.stderr, "WARNING: Hyperparameter n_iter=%s is at the extremum" % bestn_iter
 
-    print >> sys.stderr, "BEST NLL %f (alpha=%f, n_iter=%d)" % (nll, alpha, n_iter)
+    print >> sys.stderr, "BEST NLL %f (alpha=%f, n_iter=%d)" % (bestnll, alpha, n_iter)
         
 ##    clf = svm.sparse.NuSVC()
 #    clf = svm.sparse.NuSVR()
 #    clf.fit(X, Y)
+    return fit_classifier(X, Y, bestalpha, bestn_iter)
 
 def fit_classifier(X, Y, alpha, n_iter):
     """
