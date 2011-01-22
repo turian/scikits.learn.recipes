@@ -25,7 +25,7 @@ def train(X, Y):
     assert X.shape[0] == len(Y)
     assert Y.ndim == 1
 
-    ALL_ALPHA = [0.32 ** i for i in range(-2, 14)]
+    ALL_ALPHA = [0.32 ** i for i in range(-3, 14)]
 #    print ALL_ALPHA
 #    ALL_N_ITER = [2 ** i for i in range(10)]
     ALL_N_ITER = [2 ** i for i in range(7)]
@@ -44,20 +44,20 @@ def train(X, Y):
     for i, (alpha, n_iter) in enumerate(hyperparams):
         nll = evaluate(X, Y, alpha=alpha, n_iter=n_iter)
         if nll < bestnll:
-            print >> sys.stderr, "new best nlltotal %f (alpha=%f, n_iter=%d)" % (nll, alpha, n_iter)
             bestnll = nll
             bestalpha = alpha
             bestn_iter = n_iter
-        if (i+1)%25 == 0:
-            print >> sys.stderr, "Done with %s of hyperparams..." % (common.str.percent(i+1, len(hyperparams)))
-            print >> sys.stderr, stats()
+            print >> sys.stderr, "new best nlltotal %f (alpha=%f, n_iter=%d)" % (bestnll, bestalpha, bestn_iter)
+#        if (i+1)%25 == 0:
+#            print >> sys.stderr, "Done with %s of hyperparams..." % (common.str.percent(i+1, len(hyperparams)))
+#            print >> sys.stderr, stats()
     # Don't want hyperparameters at the extremum
     if not(bestalpha != ALL_ALPHA[0] and bestalpha != ALL_ALPHA[-1]):
         print >> sys.stderr, "WARNING: Hyperparameter alpha=%s is at the extremum" % bestalpha
     if not((bestn_iter != ALL_N_ITER[0] or ALL_N_ITER[0]==1) and bestn_iter != ALL_N_ITER[-1]):
         print >> sys.stderr, "WARNING: Hyperparameter n_iter=%s is at the extremum" % bestn_iter
 
-    print >> sys.stderr, "BEST NLL %f (alpha=%f, n_iter=%d)" % (bestnll, alpha, n_iter)
+    print >> sys.stderr, "BEST NLL %f (alpha=%f, n_iter=%d)" % (bestnll, bestalpha, bestn_iter)
         
 ##    clf = svm.sparse.NuSVC()
 #    clf = svm.sparse.NuSVR()
