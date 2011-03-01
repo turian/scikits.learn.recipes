@@ -96,6 +96,10 @@ def evaluate(X, Y, alpha, n_iter):
 #        print "train", X_train.shape, y_train.shape
 #        print "test", X_test.shape, y_test.shape
 
+        if len(frozenset(y_train)) == 1:
+            # Skip training on this LOO set if there is only one y-value in the training set
+            continue
+
         clf = fit_classifier(X_train, y_train, alpha=alpha, n_iter=n_iter)
 
 #        print "target", y_test
