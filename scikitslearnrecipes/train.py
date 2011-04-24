@@ -111,12 +111,20 @@ def evaluate(X, Y, alpha, n_iter):
         y_test_predict = clf.predict_proba(X_test)
         assert y_test.shape == (1,)
         assert y_test_predict.shape == (1,)
+        if y_test_predict[0] >= 1.:
+#            print >> sys.stderr, "WHA? y_test_predict[0] %f >= 1. !!!" % y_test_predict[0]
+            y_test_predict[0] = 1-1e-9
+        elif y_test_predict[0] <= 0.:
+#            print >> sys.stderr, "WHA? y_test_predict[0] %f <= 0. !!!" % y_test_predict[0]
+            y_test_predict[0] = 1e-9
+
         if y_test[0] == 1:
             probtarget = y_test_predict[0]
         else:
             assert y_test[0] == 0
             probtarget = 1-y_test_predict[0]
 #        print "probtarget", probtarget
+#        print y_test[0], y_test_predict[0], repr(probtarget)
         nll = -math.log(probtarget)
 #        print "nll", nll
 #        print
