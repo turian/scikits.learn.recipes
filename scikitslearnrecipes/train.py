@@ -29,6 +29,7 @@ def train(X, Y):
 #    print ALL_ALPHA
 #    ALL_N_ITER = [2 ** i for i in range(10)]
     ALL_N_ITER = [2 ** i for i in range(7)]
+#    ALL_N_ITER = [2 ** i for i in range(3)]
 #    print ALL_N_ITER
 
     bestnll = 1e100
@@ -76,6 +77,7 @@ def fit_classifier(X, Y, alpha, n_iter):
     # Logistic Regression
     from scikits.learn import linear_model
     clf = linear_model.sparse.SGDClassifier(loss='log', shuffle=True, alpha=alpha, n_iter=n_iter)
+#    clf = linear_model.sparse.SGDClassifier(loss='log', shuffle=True, alpha=alpha, n_iter=n_iter, penalty="l1")
     clf.fit(X, Y)
     return clf
 
