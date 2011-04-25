@@ -8,6 +8,8 @@ import random
 import sys
 from scikits.learn import svm
 
+import scikits.learn.metrics
+
 import common.str
 from common.stats import stats
 
@@ -76,8 +78,8 @@ def fit_classifier(X, Y, alpha, n_iter):
 
     # Logistic Regression
     from scikits.learn import linear_model
-    clf = linear_model.sparse.SGDClassifier(loss='log', shuffle=True, alpha=alpha, n_iter=n_iter)
-#    clf = linear_model.sparse.SGDClassifier(loss='log', shuffle=True, alpha=alpha, n_iter=n_iter, penalty="l1")
+#    clf = linear_model.sparse.SGDClassifier(loss='log', shuffle=True, alpha=alpha, n_iter=n_iter)
+    clf = linear_model.sparse.SGDClassifier(loss='log', shuffle=True, alpha=alpha, n_iter=n_iter, penalty="l1")
     clf.fit(X, Y)
     return clf
 
@@ -86,9 +88,18 @@ def evaluate(X, Y, alpha, n_iter):
     Evaluate X and Y using leave-one-out crossvalidation, and return the nll.
     TODO: Hyperparameters should be a kwarg and passed to the classifier constructor.
     """
-    from scikits.learn.cross_val import LeaveOneOut
-    loo = LeaveOneOut(len(Y))
+    print >> sys.stderr, "Evaluating with alpha=%f, n_iter=%d" % (alpha, n_iter)
+
+#    from scikits.learn.cross_val import LeaveOneOut
+#    loo = LeaveOneOut(len(Y))
+    from scikits.learn.cross_val import KFold
+    K = 10
+    print >> sys.stderr, "Using 10-fold cross-validation"
+    loo = KFold(len(Y), K)
 #    print loo
+
+    all_y_test = []
+    all_y_test_predict = []
 
     nlltotal = 0.
     for train, test in loo:
@@ -111,27 +122,53 @@ def evaluate(X, Y, alpha, n_iter):
 ##        print "score", clf.score(X_test, y_test)
 
         y_test_predict = clf.predict_proba(X_test)
-        assert y_test.shape == (1,)
-        assert y_test_predict.shape == (1,)
-        if y_test_predict[0] >= 1.:
-#            print >> sys.stderr, "WHA? y_test_predict[0] %f >= 1. !!!" % y_test_predict[0]
-            y_test_predict[0] = 1-1e-9
-        elif y_test_predict[0] <= 0.:
-#            print >> sys.stderr, "WHA? y_test_predict[0] %f <= 0. !!!" % y_test_predict[0]
-            y_test_predict[0] = 1e-9
 
-        if y_test[0] == 1:
-            probtarget = y_test_predict[0]
-        else:
-            assert y_test[0] == 0
-            probtarget = 1-y_test_predict[0]
-#        print "probtarget", probtarget
-#        print y_test[0], y_test_predict[0], repr(probtarget)
-        nll = -math.log(probtarget)
-#        print "nll", nll
-#        print
+        all_y_test.append(y_test)
+        all_y_test_predict.append(y_test_predict)
 
-        nlltotal += nll
-    nlltotal /= len(Y)
-#    print "nlltotal %f (alpha=%f, n_iter=%d)" % (nlltotal, alpha, n_iter)
-    return nlltotal
+##        print clf.best_estimator
+#        print precision_score(y_test, y_test_predict)
+#        print recall_score(y_test, y_test_predict)
+#        print classification_report(y_test, y_test_predict)
+#
+#
+#        assert y_test.shape == (1,)
+#        assert y_test_predict.shape == (1,)
+#        if y_test_predict[0] >= 1.:
+##            print >> sys.stderr, "WHA? y_test_predict[0] %f >= 1. !!!" % y_test_predict[0]
+#            y_test_predict[0] = 1-1e-9
+#        elif y_test_predict[0] <= 0.:
+##            print >> sys.stderr, "WHA? y_test_predict[0] %f <= 0. !!!" % y_test_predict[0]
+#            y_test_predict[0] = 1e-9
+#
+#        if y_test[0] == 1:
+#            probtarget = y_test_predict[0]
+#        else:
+#            assert y_test[0] == 0
+#            probtarget = 1-y_test_predict[0]
+##        print "probtarget", probtarget
+##        print y_test[0], y_test_predict[0], repr(probtarget)
+#        nll = -math.log(probtarget)
+##        print "nll", nll
+##        print
+#
+#        nlltotal += nll
+#    nlltotal /= len(Y)
+##    print "nlltotal %f (alpha=%f, n_iter=%d)" % (nlltotal, alpha, n_iter)
+#    return nlltotal
+
+    y_test = numpy.hstack(all_y_test)
+    y_test_predict = numpy.hstack(all_y_test_predict)
+    assert y_test.ndim == 1
+    assert y_test_predict.ndim == 1
+    assert Y.shape == y_test.shape
+    assert y_test.shape == y_test_predict.shape
+    print "precision_recall_fscore_support", scikits.learn.metrics.precision_recall_fscore_support(y_test, y_test_predict)
+    print "precision_recall_curve", scikits.learn.metrics.precision_recall_curve(y_test, y_test_predict)
+    print "confusion_matrix", scikits.learn.metrics.confusion_matrix(y_test, y_test_predict)
+    
+    print "roc_curve", scikits.learn.metrics.roc_curve(y_test, y_test_predict)
+    fpr, tpr, thresholds = scikits.learn.metrics.roc_curve(y_test, y_test_predict)
+    print "auc", scikits.learn.metrics.auc(fpr, tpr)
+    import plot
+    plot.plot_roc(fpr, tpr)
