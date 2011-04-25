@@ -6,7 +6,7 @@ from pystringfeatures import stringfeatures
 from common.sparsedicttocsrmatrix import SparseDictToCSRMatrix
 import scikitslearnrecipes.train
 
-lines = open("word-features.txt").readlines()
+lines = open("/home/joseph/Downloads/valid-keyphrases.txt").readlines()
 Y = [int(l[0]) for l in lines]
 features = [stringfeatures(l[2:]) for l in lines]
 
@@ -34,12 +34,12 @@ X_test = fmap(features_test)
 print >> sys.stderr, "Applied feature map"
 print >> sys.stderr, stats()
 
-#scikitslearnrecipes.train.train(X_alltrain, Y_alltrain)
-clf = scikitslearnrecipes.train.fit_classifier(X_alltrain, Y_alltrain, 0.01, 10)
-assert clf.sparse_coef_.shape[0] == 1
-assert clf.sparse_coef_.ndim == 2
-for f in clf.sparse_coef_.indices:
-    print clf.sparse_coef_[0, f], fmap.idmap.key(f)
+scikitslearnrecipes.train.train(X_alltrain, Y_alltrain)
+#clf = scikitslearnrecipes.train.fit_classifier(X_alltrain, Y_alltrain, 0.01, 10)
+#assert clf.sparse_coef_.shape[0] == 1
+#assert clf.sparse_coef_.ndim == 2
+#for f in clf.sparse_coef_.indices:
+#    print clf.sparse_coef_[0, f], fmap.idmap.key(f)
 
 #    f = l[2:]
 #    Y = [l[0] for
