@@ -34,7 +34,8 @@ def train(X, Y):
 #    ALL_N_ITER = [2 ** i for i in range(3)]
 #    print ALL_N_ITER
 
-    bestnll = 1e100
+#    bestnll = 1e100
+    bestscore = 0.
     bestalpha = None
     bestn_iter = None
 
@@ -45,12 +46,12 @@ def train(X, Y):
             hyperparams.append((alpha, n_iter))
     random.shuffle(hyperparams)
     for i, (alpha, n_iter) in enumerate(hyperparams):
-        nll = evaluate(X, Y, alpha=alpha, n_iter=n_iter)
-        if nll < bestnll:
-            bestnll = nll
+        score = evaluate(X, Y, alpha=alpha, n_iter=n_iter)
+        if score > bestscore:
+            bestscore = score
             bestalpha = alpha
             bestn_iter = n_iter
-            print >> sys.stderr, "new best nlltotal %f (alpha=%f, n_iter=%d)" % (bestnll, bestalpha, bestn_iter)
+            print >> sys.stderr, "new best f1 %f (alpha=%f, n_iter=%d)" % (bestscore, bestalpha, bestn_iter)
 #        if (i+1)%25 == 0:
 #            print >> sys.stderr, "Done with %s of hyperparams..." % (common.str.percent(i+1, len(hyperparams)))
 #            print >> sys.stderr, stats()
@@ -60,7 +61,7 @@ def train(X, Y):
     if not((bestn_iter != ALL_N_ITER[0] or ALL_N_ITER[0]==1) and bestn_iter != ALL_N_ITER[-1]):
         print >> sys.stderr, "WARNING: Hyperparameter n_iter=%s is at the extremum" % bestn_iter
 
-    print >> sys.stderr, "BEST NLL %f (alpha=%f, n_iter=%d)" % (bestnll, bestalpha, bestn_iter)
+    print >> sys.stderr, "BEST NLL %f (alpha=%f, n_iter=%d)" % (bestscore, bestalpha, bestn_iter)
         
 ##    clf = svm.sparse.NuSVC()
 #    clf = svm.sparse.NuSVR()
@@ -85,16 +86,16 @@ def fit_classifier(X, Y, alpha, n_iter):
 
 def evaluate(X, Y, alpha, n_iter):
     """
-    Evaluate X and Y using leave-one-out crossvalidation, and return the nll.
+    Evaluate X and Y using leave-one-out or 10-fold crossvalidation, and return the nll.
     TODO: Hyperparameters should be a kwarg and passed to the classifier constructor.
     """
-    print >> sys.stderr, "Evaluating with alpha=%f, n_iter=%d" % (alpha, n_iter)
+#    print >> sys.stderr, "Evaluating with alpha=%f, n_iter=%d" % (alpha, n_iter)
 
 #    from scikits.learn.cross_val import LeaveOneOut
 #    loo = LeaveOneOut(len(Y))
     from scikits.learn.cross_val import KFold
     K = 10
-    print >> sys.stderr, "Using 10-fold cross-validation"
+#    print >> sys.stderr, "Using 10-fold cross-validation"
     loo = KFold(len(Y), K)
 #    print loo
 
@@ -163,12 +164,15 @@ def evaluate(X, Y, alpha, n_iter):
     assert y_test_predict.ndim == 1
     assert Y.shape == y_test.shape
     assert y_test.shape == y_test_predict.shape
-    print "precision_recall_fscore_support", scikits.learn.metrics.precision_recall_fscore_support(y_test, y_test_predict)
-    print "precision_recall_curve", scikits.learn.metrics.precision_recall_curve(y_test, y_test_predict)
-    print "confusion_matrix", scikits.learn.metrics.confusion_matrix(y_test, y_test_predict)
-    
-    print "roc_curve", scikits.learn.metrics.roc_curve(y_test, y_test_predict)
-    fpr, tpr, thresholds = scikits.learn.metrics.roc_curve(y_test, y_test_predict)
-    print "auc", scikits.learn.metrics.auc(fpr, tpr)
     import plot
-    plot.plot_roc(fpr, tpr)
+#    print "precision_recall_fscore_support", scikits.learn.metrics.precision_recall_fscore_support(y_test, y_test_predict)
+    f1 = scikits.learn.metrics.f1_score(y_test, y_test_predict)
+#    print "f1", f1
+#    precision, recall, thresholds = scikits.learn.metrics.precision_recall_curve(y_test, y_test_predict)
+#    plot.plot_precision_recall(precision, recall)
+#    print "confusion_matrix", scikits.learn.metrics.confusion_matrix(y_test, y_test_predict)
+#    print "roc_curve", scikits.learn.metrics.roc_curve(y_test, y_test_predict)
+#    fpr, tpr, thresholds = scikits.learn.metrics.roc_curve(y_test, y_test_predict)
+#    print "auc", scikits.learn.metrics.auc(fpr, tpr)
+#    plot.plot_roc(fpr, tpr)
+    return f1
