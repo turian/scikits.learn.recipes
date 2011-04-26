@@ -8,10 +8,24 @@ import random
 import sys
 from scikits.learn import svm
 
-import scikits.learn.metrics
+from scikits.learn.metrics import f1_score
+
+from scikits.learn.cross_val import StratifiedKFold
+from scikits.learn.grid_search import GridSearchCV
 
 import common.str
 from common.stats import stats
+
+try:
+    from itertools import product
+except:
+    def product(*args, **kwds):
+        pools = map(tuple, args) * kwds.get('repeat', 1)
+        result = [[]]
+        for pool in pools:
+            result = [x + [y] for x in result for y in pool]
+        for prod in result:
+            yield tuple(prod)
 
 def train(X, Y):
     """
@@ -35,44 +49,80 @@ def train(X, Y):
 #    print ALL_N_ITER
     ALL_PENALTY = ["l1", "l2", "elasticnet"]
 
+#    tuned_parameters = [{'alpha': [0.32 ** i for i in range(-3, 14)],
+#                         'n_iter': [2 ** i for i in range(7)],
+#                         'penalty': ["l1", "l2"],
+#                         'loss': ['log', 'hinge', 'modified_huber'],
+#                         'shuffle': [True],
+#                         'fit_intercept': [True],
+#                         'verbose': [0],
+#                        },
+#                        {'alpha': [0.32 ** i for i in range(-3, 14)],
+#                         'n_iter': [2 ** i for i in range(7)],
+#                         'rho': [0.0, 0.1, 0.35, 0.6, 0.85, 1.0],
+#                         'penalty': ["elasticnet"],
+#                         'loss': ['log', 'hinge', 'modified_huber'],
+#                         'shuffle': [True],
+#                         'fit_intercept': [True],
+#                         'verbose': [0],
+#                        }]
+
+    tuned_parameters = [{'alpha': [0.32 ** i for i in range(2, 10)],
+                         'n_iter': [8],
+                         'penalty': ["elasticnet"],
+                         'loss': ['hinge'],
+                         'shuffle': [True],
+                         'fit_intercept': [True],
+                         'verbose': [0],
+                        }]
+
+#    clf = linear_model.sparse.SGDClassifier(loss='log', shuffle=True, fit_intercept=True, **hyperparams)
+
+#    from scikits.learn import linear_model
+#    clf = GridSearchCV(linear_model.sparse.SGDClassifier(shuffle=True, fit_intercept=True), tuned_parameters, n_jobs=2, score_func=f1_score, verbose=True)
+#    clf.fit(X, Y, cv=StratifiedKFold(Y, 10))
+##    y_true, y_pred = y[test], clf.predict(X[test])
+#    return
+
+
 #    bestnll = 1e100
     bestscore = 0.
-    bestalpha = None
-    bestn_iter = None
-    bestpenalty = None
+    besthyperparams= None
 
-    # Random-order grid search
-    hyperparams = []
-    for alpha in ALL_ALPHA:
-        for n_iter in ALL_N_ITER:
-            for penalty in ALL_PENALTY:
-                hyperparams.append((alpha, n_iter, penalty))
-    random.shuffle(hyperparams)
-    for i, (alpha, n_iter, penalty) in enumerate(hyperparams):
-        score = evaluate(X, Y, alpha=alpha, n_iter=n_iter, penalty=penalty)
+    all_hyperparams =  []
+    for p in tuned_parameters:
+        # Always sort the keys of a dictionary, for reproducibility
+        items = sorted(p.items())
+        keys, values = zip(*items)
+        for v in product(*values):
+            params = dict(zip(keys, v))
+            all_hyperparams.append(params)
+    random.shuffle(all_hyperparams)
+
+
+    for i, hyperparams in enumerate(all_hyperparams):
+        score = evaluate(X, Y, hyperparams)
         if score > bestscore:
             bestscore = score
-            bestalpha = alpha
-            bestn_iter = n_iter
-            bestpenalty = penalty
-            print >> sys.stderr, "new best f1 %f (alpha=%f, n_iter=%d, penalty=%s)" % (bestscore, bestalpha, bestn_iter, bestpenalty)
+            besthyperparams = hyperparams
+            print >> sys.stderr, "new best f1 %f (%s)" % (bestscore, besthyperparams)
         if (i+1)%25 == 0:
-            print >> sys.stderr, "Done with %s of hyperparams..." % (common.str.percent(i+1, len(hyperparams)))
+            print >> sys.stderr, "Done with %s of hyperparams..." % (common.str.percent(i+1, len(all_hyperparams)))
             print >> sys.stderr, stats()
-    # Don't want hyperparameters at the extremum
-    if not(bestalpha != ALL_ALPHA[0] and bestalpha != ALL_ALPHA[-1]):
-        print >> sys.stderr, "WARNING: Hyperparameter alpha=%s is at the extremum" % bestalpha
-    if not((bestn_iter != ALL_N_ITER[0] or ALL_N_ITER[0]==1) and bestn_iter != ALL_N_ITER[-1]):
-        print >> sys.stderr, "WARNING: Hyperparameter n_iter=%s is at the extremum" % bestn_iter
+#    # Don't want hyperparameters at the extremum
+#    if not(bestalpha != ALL_ALPHA[0] and bestalpha != ALL_ALPHA[-1]):
+#        print >> sys.stderr, "WARNING: Hyperparameter alpha=%s is at the extremum" % bestalpha
+#    if not((bestn_iter != ALL_N_ITER[0] or ALL_N_ITER[0]==1) and bestn_iter != ALL_N_ITER[-1]):
+#        print >> sys.stderr, "WARNING: Hyperparameter n_iter=%s is at the extremum" % bestn_iter
 
-    print >> sys.stderr, "BEST NLL %f (alpha=%f, n_iter=%d, penalty=%s)" % (bestscore, bestalpha, bestn_iter, bestpenalty)
+    print >> sys.stderr, "BEST F1 %f (%s)" % (bestscore, besthyperparams)
         
 ##    clf = svm.sparse.NuSVC()
 #    clf = svm.sparse.NuSVR()
 #    clf.fit(X, Y)
-    return fit_classifier(X, Y, bestalpha, bestn_iter, bestpenalty)
+    return fit_classifier(X, Y, besthyperparams)
 
-def fit_classifier(X, Y, alpha, n_iter, penalty):
+def fit_classifier(X, Y, hyperparams):
     """
     Train a classifier on X and Y with the given hyperparameters, and return it.
     TODO: Hyperparameters should be a kwarg and passed to the classifier constructor.
@@ -84,21 +134,20 @@ def fit_classifier(X, Y, alpha, n_iter, penalty):
     # Logistic Regression
     from scikits.learn import linear_model
 #    clf = linear_model.sparse.SGDClassifier(loss='log', shuffle=True, alpha=alpha, n_iter=n_iter)
-    clf = linear_model.sparse.SGDClassifier(loss='log', shuffle=True, fit_intercept=True, alpha=alpha, n_iter=n_iter, penalty=penalty)
+    clf = linear_model.sparse.SGDClassifier(**hyperparams)
     clf.fit(X, Y)
     return clf
 
-def evaluate(X, Y, alpha, n_iter, penalty):
+def evaluate(X, Y, hyperparams):
     """
-    Evaluate X and Y using leave-one-out or 10-fold crossvalidation, and return the nll.
+    Evaluate X and Y using leave-one-out or K-fold crossvalidation, and return the nll.
     TODO: Hyperparameters should be a kwarg and passed to the classifier constructor.
     """
-#    print >> sys.stderr, "Evaluating with alpha=%f, n_iter=%d, penalty=%s" % (alpha, n_iter, penalty)
 
 #    from scikits.learn.cross_val import LeaveOneOut
 #    loo = LeaveOneOut(len(Y))
     from scikits.learn.cross_val import KFold
-    K = 10
+    K = 5
 #    print >> sys.stderr, "Using 10-fold cross-validation"
     loo = KFold(len(Y), K)
 #    print loo
@@ -118,7 +167,7 @@ def evaluate(X, Y, alpha, n_iter, penalty):
             # Skip training on this LOO set if there is only one y-value in the training set
             continue
 
-        clf = fit_classifier(X_train, y_train, alpha=alpha, n_iter=n_iter, penalty=penalty)
+        clf = fit_classifier(X_train, y_train, hyperparams)
 
 #        print "target", y_test
 ##        print "predict", clf.predict(X_test)
@@ -126,7 +175,9 @@ def evaluate(X, Y, alpha, n_iter, penalty):
 ##        print "df", clf.decision_function(X_test)
 ##        print "score", clf.score(X_test, y_test)
 
-        y_test_predict = clf.predict_proba(X_test)
+#        y_test_predict = clf.predict_proba(X_test)
+        y_test_predict = clf.predict(X_test)
+#        print y_test_predict
 
         all_y_test.append(y_test)
         all_y_test_predict.append(y_test_predict)
@@ -168,10 +219,11 @@ def evaluate(X, Y, alpha, n_iter, penalty):
     assert y_test_predict.ndim == 1
     assert Y.shape == y_test.shape
     assert y_test.shape == y_test_predict.shape
-    import plot
+#    import plot
 #    print "precision_recall_fscore_support", scikits.learn.metrics.precision_recall_fscore_support(y_test, y_test_predict)
-    f1 = scikits.learn.metrics.f1_score(y_test, y_test_predict)
-#    print "f1", f1
+    f1 = f1_score(y_test, y_test_predict)
+#    print "\tf1 = %0.3f when evaluating with %s" % (f1, hyperparams)
+#    sys.stdout.flush()
 #    precision, recall, thresholds = scikits.learn.metrics.precision_recall_curve(y_test, y_test_predict)
 #    plot.plot_precision_recall(precision, recall)
 #    print "confusion_matrix", scikits.learn.metrics.confusion_matrix(y_test, y_test_predict)
