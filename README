@@ -1,5 +1,5 @@
 scikits.learn.recipes
-=====
+=====================
 
 Logistic Regression, automatically picking the best hyperparams using leave-one-out crossvalidation.
 Built using scikits.learn.

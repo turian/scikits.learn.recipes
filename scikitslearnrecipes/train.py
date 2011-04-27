@@ -34,6 +34,8 @@ def train(X, Y):
     X should have been converted to a csrmatrix, maybe using SparseDictToCSRMatrix().
     Y is a list of target values.
 
+    Yield classifiers that are increasingly better.
+
     TODO: Don't assume a sparse matrix?
     TODO: Make list of hyperparams more generic, not hard-coded
     """
@@ -41,40 +43,42 @@ def train(X, Y):
     assert X.shape[0] == len(Y)
     assert Y.ndim == 1
 
-    ALL_ALPHA = [0.32 ** i for i in range(-3, 14)]
-#    print ALL_ALPHA
-#    ALL_N_ITER = [2 ** i for i in range(10)]
-    ALL_N_ITER = [2 ** i for i in range(7)]
-#    ALL_N_ITER = [2 ** i for i in range(3)]
-#    print ALL_N_ITER
-    ALL_PENALTY = ["l1", "l2", "elasticnet"]
+    tuned_parameters = [{'alpha': [0.32 ** i for i in range(-3, 14)],
+                         'n_iter': [2 ** i for i in range(8)],
+                         'penalty': ["l1", "l2"],
+                         'loss': ['log', 'hinge', 'modified_huber'],
+                         'shuffle': [True],
+                         'fit_intercept': [True],
+                         'verbose': [0],
+                        },
+                        {'alpha': [0.32 ** i for i in range(-3, 14)],
+                         'n_iter': [2 ** i for i in range(7)],
+                         'rho': [0.0, 0.1, 0.35, 0.6, 0.85, 1.0],
+                         'penalty': ["elasticnet"],
+                         'loss': ['log', 'hinge', 'modified_huber'],
+                         'shuffle': [True],
+                         'fit_intercept': [True],
+                         'verbose': [0],
+                        }]
 
-#    tuned_parameters = [{'alpha': [0.32 ** i for i in range(-3, 14)],
-#                         'n_iter': [2 ** i for i in range(7)],
-#                         'penalty': ["l1", "l2"],
-#                         'loss': ['log', 'hinge', 'modified_huber'],
-#                         'shuffle': [True],
-#                         'fit_intercept': [True],
-#                         'verbose': [0],
-#                        },
-#                        {'alpha': [0.32 ** i for i in range(-3, 14)],
-#                         'n_iter': [2 ** i for i in range(7)],
-#                         'rho': [0.0, 0.1, 0.35, 0.6, 0.85, 1.0],
-#                         'penalty': ["elasticnet"],
+#    # Sparse l1 model
+#    tuned_parameters = [{'alpha': [0.32 ** i for i in range(-3, 4)],
+#                         'n_iter': [2 ** i for i in range(8)],
+#                         'penalty': ["l1"],
 #                         'loss': ['log', 'hinge', 'modified_huber'],
 #                         'shuffle': [True],
 #                         'fit_intercept': [True],
 #                         'verbose': [0],
 #                        }]
 
-    tuned_parameters = [{'alpha': [0.32 ** i for i in range(2, 10)],
-                         'n_iter': [8],
-                         'penalty': ["elasticnet"],
-                         'loss': ['hinge'],
-                         'shuffle': [True],
-                         'fit_intercept': [True],
-                         'verbose': [0],
-                        }]
+#    tuned_parameters = [{'alpha': [0.32 ** i for i in range(2, 10)],
+#                         'n_iter': [8],
+#                         'penalty': ["elasticnet"],
+#                         'loss': ['hinge'],
+#                         'shuffle': [True],
+#                         'fit_intercept': [True],
+#                         'verbose': [0],
+#                        }]
 
 #    clf = linear_model.sparse.SGDClassifier(loss='log', shuffle=True, fit_intercept=True, **hyperparams)
 
@@ -105,7 +109,9 @@ def train(X, Y):
         if score > bestscore:
             bestscore = score
             besthyperparams = hyperparams
-            print >> sys.stderr, "new best f1 %f (%s)" % (bestscore, besthyperparams)
+            clf = fit_classifier(X, Y, besthyperparams)
+            print >> sys.stderr, "new best f1 %f (%s) %d non-zero weights" % (bestscore, besthyperparams, len(clf.sparse_coef_.indices))
+            yield clf
         if (i+1)%25 == 0:
             print >> sys.stderr, "Done with %s of hyperparams..." % (common.str.percent(i+1, len(all_hyperparams)))
             print >> sys.stderr, stats()
@@ -120,7 +126,7 @@ def train(X, Y):
 ##    clf = svm.sparse.NuSVC()
 #    clf = svm.sparse.NuSVR()
 #    clf.fit(X, Y)
-    return fit_classifier(X, Y, besthyperparams)
+#    return fit_classifier(X, Y, besthyperparams)
 
 def fit_classifier(X, Y, hyperparams):
     """
