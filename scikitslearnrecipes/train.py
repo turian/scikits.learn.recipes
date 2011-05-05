@@ -44,7 +44,7 @@ def train(X, Y):
     assert Y.ndim == 1
 
     tuned_parameters = [{'alpha': [0.32 ** i for i in range(-3, 14)],
-                         'n_iter': [2 ** i for i in range(8)],
+                         'n_iter': [2 ** i for i in range(10)],
                          'penalty': ["l1", "l2"],
                          'loss': ['log', 'hinge', 'modified_huber'],
                          'shuffle': [True],
@@ -52,7 +52,7 @@ def train(X, Y):
                          'verbose': [0],
                         },
                         {'alpha': [0.32 ** i for i in range(-3, 14)],
-                         'n_iter': [2 ** i for i in range(7)],
+                         'n_iter': [2 ** i for i in range(10)],
                          'rho': [0.0, 0.1, 0.35, 0.6, 0.85, 1.0],
                          'penalty': ["elasticnet"],
                          'loss': ['log', 'hinge', 'modified_huber'],
