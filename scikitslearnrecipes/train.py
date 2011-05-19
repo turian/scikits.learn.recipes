@@ -43,8 +43,9 @@ def train(X, Y):
     assert X.shape[0] == len(Y)
     assert Y.ndim == 1
 
+    # Semi-exhaustive
     tuned_parameters = [{'alpha': [0.32 ** i for i in range(-3, 11)],
-                         'n_iter': [2 ** i for i in range(11)],
+                         'n_iter': [2 ** i for i in range(14)],
                          'penalty': ["l1", "l2"],
                          'loss': ['log', 'hinge', 'modified_huber'],
                          'shuffle': [True],
@@ -53,11 +54,25 @@ def train(X, Y):
                          'verbose': [0],
                         },
                         {'alpha': [0.32 ** i for i in range(-3, 11)],
-                         'n_iter': [2 ** i for i in range(11)],
+                         'n_iter': [2 ** i for i in range(14)],
 #                         'rho': [0.0, 0.1, 0.35, 0.6, 0.85, 1.0],
                          'rho': [0.1, 0.35, 0.6, 0.85],
                          'penalty': ["elasticnet"],
                          'loss': ['log', 'hinge', 'modified_huber'],
+                         'shuffle': [True],
+#                         'fit_intercept': [True],
+                         'fit_intercept': [False],
+                         'verbose': [0],
+                        }]
+
+    # Better in common cases
+    tuned_parameters = [{'alpha': [0.32 ** i for i in range(1, 11)],
+                         'n_iter': [2 ** i for i in range(13)],
+#                         'rho': [0.0, 0.1, 0.35, 0.6, 0.85, 1.0],
+                         'rho': [0.1, 0.35, 0.6, 0.85],
+                         'penalty': ["elasticnet"],
+#                         'loss': ['log', 'hinge', 'modified_huber'],
+                         'loss': ['hinge'],
                          'shuffle': [True],
 #                         'fit_intercept': [True],
                          'fit_intercept': [False],
