@@ -1,8 +1,11 @@
 scikits.learn.recipes
 =====================
 
-Logistic Regression, automatically picking the best hyperparams using leave-one-out crossvalidation.
-Built using scikits.learn.
+written by Joseph Turian
+released under the BSD license
+
+Recipes for scikits.learn, including a randomized grid search for picking
+logistic regression hyperparameters.
 
 TODO:
     * Create a Class that converts all inputs from dict to a csrmatrix,
